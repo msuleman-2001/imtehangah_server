@@ -1,0 +1,33 @@
+# Ignore Python bytecode files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environment
+venv/
+env/
+
+# Ignore Django secret key and database settings (if any)
+*.sqlite3
+*.log
+*.env
+.env.*
+
+# Ignore Django migrations cache
+db.sqlite3
+migrations/__pycache__/
+
+# Ignore media/uploads
+media/
+staticfiles/
+
+# Ignore IDE/editor files
+.vscode/
+.idea/
+*.swp
+
+# Ignore compiled files
+*.egg-info/
+dist/
+build/
