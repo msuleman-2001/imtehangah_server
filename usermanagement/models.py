@@ -1,44 +1,57 @@
 import uuid
 
-from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import User, AbstractUser, Group, Permission
 from django.db import models
+
+from .role_enum import RoleEnum
+
+
+class BaseUser(AbstractUser):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    first_name = models.CharField(max_length=50, default="Unknown")
+    last_name = models.CharField(max_length=50, default="Unknown")
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=15)
+    department = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    remarks = models.TextField(null=True, blank=True)
+    password = models.CharField(max_length=128, default=make_password("default_password"))
+
+    user_type = models.CharField(max_length=50, choices=RoleEnum.choices(), default=RoleEnum.STUDENT.value)
+
+    # Fixing the reverse accessor conflict
+    groups = models.ManyToManyField(Group, related_name="baseuser_groups", blank=True)
+    user_permissions = models.ManyToManyField(Permission, related_name="baseuser_permissions", blank=True)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.first_name}{self.last_name} - {self.email}"
 
 
 # Student Model
-class Student(models.Model):
-    student_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+class Student(BaseUser):
     student_roll_no = models.CharField(max_length=50, unique=True)
-    student_name = models.CharField(max_length=100)
-    student_email = models.EmailField(unique=True)
-    student_phone = models.CharField(max_length=15)
-    student_password = models.CharField(max_length=128)
-    is_enable = models.BooleanField(default=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='student_created_by')
-    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='student_updated_by')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    remarks = models.TextField(null=True, blank=True)
+    groups = models.ManyToManyField(Group, related_name="student_groups", blank=True)
+    user_permissions = models.ManyToManyField(Permission, related_name="student_permissions", blank=True)
 
     def __str__(self):
-        return self.student_name
+        return f"{self.first_name} {self.last_name} - Student"
 
 
 # Teacher Model
-class Teacher(models.Model):
-    teacher_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    teacher_name = models.CharField(max_length=100)
-    teacher_email = models.EmailField(unique=True)
-    teacher_phone = models.CharField(max_length=15)
-    teacher_password = models.CharField(max_length=128)
-    is_enable = models.BooleanField(default=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='teacher_created_by')
-    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='teacher_updated_by')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    remarks = models.TextField(null=True, blank=True)
+class Teacher(BaseUser):
+    groups = models.ManyToManyField(Group, related_name="teacher_groups", blank=True)
+    user_permissions = models.ManyToManyField(Permission, related_name="teacher_permissions", blank=True)
 
     def __str__(self):
-        return self.teacher_name
+        return f"{self.first_name} {self.last_name} - Teacher"
 
 
 # QuestionCategory Model
