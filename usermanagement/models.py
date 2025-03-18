@@ -30,6 +30,10 @@ class BaseUser(AbstractUser):
     groups = models.ManyToManyField(Group, related_name="baseuser_groups", blank=True)
     user_permissions = models.ManyToManyField(Permission, related_name="baseuser_permissions", blank=True)
 
+    class Meta:
+        verbose_name = "User"
+        verbose_name_plural = "Users"
+
     def save(self, *args, **kwargs):
         if not self.pk or not self.password.startswith("pbkdf2_sha256$"):
             self.password = make_password(self.password)
@@ -51,12 +55,20 @@ class BaseUser(AbstractUser):
 class Student(BaseUser):
     student_roll_no = models.CharField(max_length=50, unique=True)
 
+    class Meta:
+        verbose_name = "Student"
+        verbose_name_plural = "Students"
+
     def __str__(self):
         return f"{self.first_name} {self.last_name} - Student"
 
 
 # Teacher Model
 class Teacher(BaseUser):
+    class Meta:
+        verbose_name = "Teacher"
+        verbose_name_plural = "Teachers"
+
     def __str__(self):
         return f"{self.first_name} {self.last_name} - Teacher"
 
