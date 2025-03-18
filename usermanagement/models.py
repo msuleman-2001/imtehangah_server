@@ -31,6 +31,18 @@ class BaseUser(AbstractUser):
     class Meta:
         abstract = True
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.user_type == RoleEnum.ADMIN.value:
+            group = Group.objects.get_or_create(name="Admin")
+        elif self.user_type == RoleEnum.TEACHER.value:
+            group = Group.objects.get_or_create(name="Teacher")
+        else:
+            group = Group.objects.get_or_create(name="Student")
+
+        self.groups.set([group])
+
     def __str__(self):
         return f"{self.first_name}{self.last_name} - {self.email}"
 
