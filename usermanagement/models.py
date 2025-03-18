@@ -1,5 +1,5 @@
 import uuid
-
+from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User, AbstractUser, Group, Permission
 from django.db import models
@@ -20,38 +20,36 @@ class BaseUser(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     remarks = models.TextField(null=True, blank=True)
+
+    # Secure password handling
     password = models.CharField(max_length=128, default=make_password("default_password"))
 
     user_type = models.CharField(max_length=50, choices=RoleEnum.choices(), default=RoleEnum.STUDENT.value)
 
-    # Fixing the reverse accessor conflict
+    # Fix reverse accessor conflicts
     groups = models.ManyToManyField(Group, related_name="baseuser_groups", blank=True)
     user_permissions = models.ManyToManyField(Permission, related_name="baseuser_permissions", blank=True)
 
-    class Meta:
-        abstract = True
-
     def save(self, *args, **kwargs):
+        if not self.pk or not self.password.startswith("pbkdf2_sha256$"):
+            self.password = make_password(self.password)
         super().save(*args, **kwargs)
 
-        if self.user_type == RoleEnum.ADMIN.value:
-            group = Group.objects.get_or_create(name="Admin")
-        elif self.user_type == RoleEnum.TEACHER.value:
-            group = Group.objects.get_or_create(name="Teacher")
-        else:
-            group = Group.objects.get_or_create(name="Student")
+        # Assign user to group based on user_type
+        group_name = {
+            RoleEnum.ADMIN.value: "Admin",
+            RoleEnum.TEACHER.value: "Teacher"
+        }.get(self.user_type, "Student")
 
+        group, _ = Group.objects.get_or_create(name=group_name)
         self.groups.set([group])
 
     def __str__(self):
-        return f"{self.first_name}{self.last_name} - {self.email}"
+        return f"{self.first_name} {self.last_name} - {self.email}"
 
 
-# Student Model
 class Student(BaseUser):
     student_roll_no = models.CharField(max_length=50, unique=True)
-    groups = models.ManyToManyField(Group, related_name="student_groups", blank=True)
-    user_permissions = models.ManyToManyField(Permission, related_name="student_permissions", blank=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - Student"
@@ -59,9 +57,6 @@ class Student(BaseUser):
 
 # Teacher Model
 class Teacher(BaseUser):
-    groups = models.ManyToManyField(Group, related_name="teacher_groups", blank=True)
-    user_permissions = models.ManyToManyField(Permission, related_name="teacher_permissions", blank=True)
-
     def __str__(self):
         return f"{self.first_name} {self.last_name} - Teacher"
 
@@ -71,9 +66,9 @@ class QuestionCategory(models.Model):
     question_category_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     question_category_name = models.CharField(max_length=100)
     is_enable = models.BooleanField(default=True)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                                    related_name='question_category_created_by')
-    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                                    related_name='question_category_updated_by')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
