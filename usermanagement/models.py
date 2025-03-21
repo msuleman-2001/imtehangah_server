@@ -22,7 +22,7 @@ class BaseUser(AbstractUser):
     remarks = models.TextField(null=True, blank=True)
 
     # Secure password handling
-    password = models.CharField(max_length=128, default=make_password("default_password"))
+    password = models.CharField(max_length=128)
 
     user_type = models.CharField(max_length=50, choices=RoleEnum.choices(), default=RoleEnum.STUDENT.value)
 
@@ -37,16 +37,9 @@ class BaseUser(AbstractUser):
     def save(self, *args, **kwargs):
         if not self.pk or not self.password.startswith("pbkdf2_sha256$"):
             self.password = make_password(self.password)
+
         super().save(*args, **kwargs)
 
-        # Assign user to group based on user_type
-        group_name = {
-            RoleEnum.ADMIN.value: "Admin",
-            RoleEnum.TEACHER.value: "Teacher"
-        }.get(self.user_type, "Student")
-
-        group, _ = Group.objects.get_or_create(name=group_name)
-        self.groups.set([group])
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.email}"
